@@ -1,0 +1,1626 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>基本電學 - 抽卡特訓班 (多卡包擴充版)</title>
+    <style>
+        body {
+            font-family: '微軟正黑體', sans-serif; 
+            background-color: #1a1a2e; 
+            color: #ecf0f1; display: flex; justify-content: center;
+            align-items: center; height: 100vh; margin: 0; overflow: hidden;
+            transition: background-color 0.5s ease; 
+        }
+        body.rescue-mode { background-color: #4a1010; }
+
+        .container {
+            background-color: #2c3e50; width: 90%; max-width: 650px;
+            padding: 30px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+            text-align: center; max-height: 90vh; overflow-y: auto; position: relative;
+        }
+        h1 { color: #f1c40f; margin-bottom: 5px; }
+        .subtitle { color: #95a5a6; margin-bottom: 20px; font-size: 14px; }
+        
+        #student-setup { display: block; }
+        #game-area { display: none; }
+        #result-area { display: none; }
+
+        input[type="text"] {
+            width: 80%; padding: 15px; font-size: 18px; border-radius: 8px; 
+            border: 2px solid #3498db; background: #1a1a2e; color: white; 
+            text-align: center; margin-bottom: 20px;
+        }
+
+        /* 卡包選擇器 UI */
+        .pack-selector-container {
+            margin: 20px 0; padding: 15px; background: #16213e; border-radius: 10px;
+        }
+        .pack-selector-title { font-size: 16px; color: #f39c12; margin-bottom: 10px; font-weight: bold; }
+        .pack-grid {
+            display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;
+        }
+        .pack-option {
+            background: #2c3e50; border: 2px solid #34495e; border-radius: 8px;
+            padding: 10px 15px; cursor: pointer; transition: 0.3s;
+            font-size: 16px; font-weight: bold; color: #cbd5e1; flex: 1; min-width: 120px;
+        }
+        .pack-option:hover { background: #34495e; }
+        .pack-option.active {
+            background: #2980b9; border-color: #3498db; color: #fff;
+            box-shadow: 0 0 15px rgba(52, 152, 219, 0.6); transform: scale(1.05);
+        }
+
+        .status-bar {
+            display: flex; justify-content: space-between; align-items: center;
+            background: #16213e; padding: 10px 20px; border-radius: 10px; margin-bottom: 20px;
+        }
+        .hp-bar { font-size: 18px; color: #e74c3c; text-align: left; display: flex; align-items: center; gap: 10px;}
+        .streak-badge { background: #d35400; color: white; padding: 3px 8px; border-radius: 5px; font-size: 14px; font-weight: bold; }
+        .inventory { font-size: 14px; color: #f1c40f; text-align: right; font-weight: bold;}
+        
+        .tag {
+            display: inline-block; background: #e74c3c; color: white;
+            padding: 5px 10px; border-radius: 5px; font-size: 14px; margin-bottom: 15px; font-weight: bold;
+        }
+        .question-text { font-size: 22px; line-height: 1.5; margin-bottom: 30px; }
+
+        .btn {
+            display: block; width: 100%; padding: 15px; margin-bottom: 15px;
+            font-size: 18px; cursor: pointer; border: none; border-radius: 8px;
+            background-color: #34495e; color: white; font-weight: bold; transition: 0.2s; box-shadow: 0 4px #2c3e50;
+        }
+        .btn:hover { background-color: #3498db; }
+        .btn:active { transform: translateY(4px); box-shadow: none; }
+        .btn-start { background-color: #27ae60; box-shadow: 0 4px #1e8449; margin-top: 10px; }
+        .btn-collection { background-color: #8e44ad; box-shadow: 0 4px #732d91; }
+
+        #log-report { text-align: left; background: #1a1a2e; padding: 15px; border-radius: 8px; color: #f39c12; font-size: 16px; margin-bottom: 20px; max-height: 200px; overflow-y: auto;}
+        
+        #correct-splash {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            font-size: 80px; font-weight: bold; color: #2ecc71; text-shadow: 0 0 30px rgba(46, 204, 113, 0.8);
+            opacity: 0; pointer-events: none; transition: 0.3s; z-index: 150;
+        }
+        #correct-splash.show { opacity: 1; transform: translate(-50%, -60%) scale(1.2); }
+
+        #gacha-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9); display: none; justify-content: center;
+            align-items: center; flex-direction: column; z-index: 200;
+        }
+        .gacha-card {
+            width: 250px; height: 350px; border-radius: 15px; display: flex; flex-direction: column; justify-content: center; align-items: center;
+            font-size: 24px; font-weight: bold; color: white; text-align: center; padding: 20px; box-sizing: border-box; transform: scale(0);
+            transition: transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275); text-shadow: 2px 2px 4px rgba(0,0,0,0.5); position: relative; overflow: hidden;
+        }
+        .card-SP { background: linear-gradient(135deg, #ff00cc, #3333ff); box-shadow: 0 0 50px #ff00cc; border: 3px solid #fff; }
+        .card-UR { background: linear-gradient(135deg, #FFD700, #FF8C00); box-shadow: 0 0 40px #FFD700; border: 3px solid #fff; }
+        .card-SSR { background: linear-gradient(135deg, #ff007f, #7f00ff); box-shadow: 0 0 30px #ff007f; border: 2px solid #fff; }
+        .card-SR { background: linear-gradient(135deg, #00d2ff, #3a7bd5); box-shadow: 0 0 15px #00d2ff; }
+        .card-R { background: linear-gradient(135deg, #7f8c8d, #2c3e50); }
+        .card-N { background: linear-gradient(135deg, #bdc3c7, #7f8c8d); color: #2c3e50; border: 1px solid #95a5a6; }
+        
+        .gacha-title { color: white; font-size: 24px; margin-bottom: 20px; letter-spacing: 2px;}
+        .gacha-btn { margin-top: 30px; padding: 15px 40px; font-size: 20px; font-weight: bold; background: #e74c3c; color: white; border: none; border-radius: 8px; cursor: pointer; box-shadow: 0 4px #c0392b; transition: 0.2s;}
+        .gacha-btn:active { transform: translateY(4px); box-shadow: none; }
+        .gacha-btn-collect { background: #3498db; box-shadow: 0 4px #2980b9; }
+
+        #collection-modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95);
+            display: none; justify-content: flex-start; align-items: center; flex-direction: column; z-index: 300; padding-top: 30px; overflow-y: auto;
+        }
+        .collection-header { color: #f1c40f; font-size: 28px; margin-bottom: 10px; text-shadow: 0 0 10px #f39c12; }
+        
+        /* 圖鑑分類標題樣式 */
+        .pack-section-title { width: 90%; max-width: 800px; text-align: left; font-size: 20px; color: #34db98; margin: 20px 0 10px 0; border-bottom: 2px solid #2c3e50; padding-bottom: 5px; }
+        
+        .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; width: 90%; max-width: 800px; padding-bottom: 20px;}
+        .mini-card { background: #2c3e50; border-radius: 10px; padding: 10px; text-align: center; border: 2px solid #34495e; position: relative; }
+        .mini-card img { width: 100%; border-radius: 5px; margin-bottom: 10px; aspect-ratio: 1/1; object-fit: cover; }
+        .mini-card .name { font-size: 14px; font-weight: bold; color: white; line-height: 1.2;}
+        .mini-card .count { position: absolute; top: -10px; right: -10px; background: #e74c3c; color: white; border-radius: 50%; width: 30px; height: 30px; display: flex; justify-content: center; align-items: center; font-weight: bold; font-size: 14px; border: 2px solid #fff; z-index: 10; }
+        
+        .mini-card.unowned { border-color: #555; background: #1a252f; }
+        .mini-card.unowned img { filter: grayscale(100%) brightness(0.4); opacity: 0.6; }
+        .mini-card.unowned .name { color: #7f8c8d; }
+        
+        .btn-synth { margin-top: 8px; padding: 6px 0; font-size: 13px; background: #e67e22; color: white; border: none; border-radius: 5px; cursor: pointer; width: 100%; font-weight: bold; animation: pulse 1.5s infinite; }
+        .btn-synth:hover { background: #d35400; }
+        .btn-synth-sr { background: #9b59b6; box-shadow: 0 0 10px #9b59b6; animation: pulse-sr 1.2s infinite; }
+        .btn-synth-sr:hover { background: #8e44ad; }
+        
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(230, 126, 34, 0.7); } 70% { box-shadow: 0 0 0 8px rgba(230, 126, 34, 0); } 100% { box-shadow: 0 0 0 0 rgba(230, 126, 34, 0); } }
+        @keyframes pulse-sr { 0% { box-shadow: 0 0 0 0 rgba(155, 89, 182, 0.8); } 70% { box-shadow: 0 0 0 10px rgba(155, 89, 182, 0); } 100% { box-shadow: 0 0 0 0 rgba(155, 89, 182, 0); } }
+        
+        .close-btn { margin-top: 20px; padding: 10px 30px; font-size: 18px; background: #95a5a6; color: white; border: none; border-radius: 8px; cursor: pointer; margin-bottom: 50px;}
+    </style>
+</head>
+<body>
+
+    <div id="correct-splash">⭕ 正確！</div>
+
+    <div id="gacha-overlay">
+        <div class="gacha-title" id="gacha-title">✨ 連擊達成！獲得抽卡機會！ ✨</div>
+        <button class="gacha-btn" id="pre-draw-btn" onclick="executeDraw()">👉 點擊抽卡 👈</button>
+        <div class="gacha-card" id="revealed-card" style="display:none;">
+            <img id="card-image" src="" style="width: 100%; max-height: 220px; object-fit: cover; border-radius: 10px; margin-bottom: 15px; display: none;">
+            <div id="card-name" style="font-size: 20px; line-height: 1.2;">卡片名稱</div>
+        </div>
+        <button class="gacha-btn gacha-btn-collect" id="post-draw-btn" onclick="closeGacha()" style="display:none;">收下神卡並繼續</button>
+    </div>
+
+    <div id="collection-modal">
+        <div class="collection-header" id="collection-title">🏆 專屬集卡冊</div>
+        <div id="collection-content" style="width: 100%; display: flex; flex-direction: column; align-items: center;">
+            </div>
+        <button class="close-btn" onclick="closeCollection()">返回首頁</button>
+    </div>
+
+    <div class="container">
+        <div id="student-setup">
+            <h1>🏀 期末特訓：45題大魔王！</h1>
+            <div class="subtitle">連續答對 2 題即可抽卡！(滿5張特定卡可覺醒神卡)</div>
+            <input type="text" id="student-name" placeholder="請輸入 班級+座號+姓名">
+            
+            <div class="pack-selector-container">
+                <div class="pack-selector-title">👇 請選擇本次測驗的專屬抽卡包 👇</div>
+                <div class="pack-grid" id="pack-selector">
+                    </div>
+            </div>
+            
+            <button class="btn" id="btn-sync" style="background-color: #2980b9; box-shadow: 0 4px #1c5980;" onclick="syncCloudData()">☁️ 1. 載入雲端圖鑑存檔</button>
+            <button class="btn btn-start" onclick="startGame()">▶️ 2. 開始大挑戰</button>
+            <button class="btn btn-collection" onclick="openCollection()">📖 查看我的圖鑑進度</button>
+        </div>
+
+        <div id="game-area">
+            <div class="status-bar">
+                <div class="hp-bar" id="hp-display">
+                    <span id="hearts">❤️❤️❤️</span>
+                    <span class="streak-badge" id="streak-display">🔥 連擊: 0 / 2</span>
+                </div>
+                <div class="inventory" id="inventory-display">🎒 本局卡簿: 空</div>
+            </div>
+            <div class="tag" id="q-tag">標籤</div>
+            <div class="question-text" id="q-text">題目載入中...</div>
+            <div id="options-area"></div>
+        </div>
+
+        <div id="result-area">
+            <h1>測驗完成！🎉</h1>
+            <p>戰利品已自動存入集卡冊，診斷報告已傳送給老師。</p>
+            <div id="log-report"></div>
+            <button class="btn btn-collection" style="margin-top:20px;" onclick="location.reload()">返回首頁查看集卡冊</button>
+        </div>
+    </div>
+
+    <script>
+        // === 音效引擎 ===
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        let audioCtx;
+        function initAudio() { 
+            if (!audioCtx) audioCtx = new AudioContext(); 
+            if (audioCtx.state === 'suspended') audioCtx.resume(); 
+        }
+        function playSound(type) {
+            initAudio();
+            const now = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            
+            if (type === 'correct') {
+                osc.type = 'sine'; osc.frequency.setValueAtTime(800, now); osc.frequency.exponentialRampToValueAtTime(1200, now + 0.1);
+                gain.gain.setValueAtTime(0.3, now); osc.start(now); osc.stop(now + 0.15);
+            } else if (type === 'wrong') {
+                osc.type = 'sawtooth'; osc.frequency.setValueAtTime(150, now); osc.frequency.exponentialRampToValueAtTime(80, now + 0.3);
+                gain.gain.setValueAtTime(0.3, now); osc.start(now); osc.stop(now + 0.3);
+            } else if (type === 'draw') {
+                osc.type = 'square'; osc.frequency.setValueAtTime(400, now); osc.frequency.linearRampToValueAtTime(800, now + 0.5);
+                gain.gain.setValueAtTime(0.2, now); osc.start(now); osc.stop(now + 0.5);
+            } else if (type === 'synth') {
+                osc.type = 'sine'; osc.frequency.setValueAtTime(300, now); 
+                osc.frequency.linearRampToValueAtTime(600, now + 0.3);
+                osc.frequency.linearRampToValueAtTime(1200, now + 0.6);
+                gain.gain.setValueAtTime(0.4, now); osc.start(now); osc.stop(now + 0.7);
+            }
+        }
+
+        // ==========================================
+        // 📦 系統擴充：多階段卡包架構
+        // 每個卡包機率各自獨立加總為 100%
+        // ==========================================
+        const cardPacks = {
+            "phase1": {
+                name: "⚡ 第一階段卡包",
+                cards: [
+                    { id: "c_sp1", name: "【SP】超古代覺醒・裂空座", rarity: "SP", chance: 0, image: "images/SP1.jpg" },
+                    { id: "c_sp2", name: "【SPR】見證歷史單場83分・Adebayo", rarity: "SP", chance: 0, image: "images/SP2.png" },
+
+                    { id: "c1", name: "【UR】暗黑・洛奇亞", rarity: "UR", chance: 0.375, image: "images/UR1.jpg" },
+                    { id: "c2", name: "【UR】光明・洛奇亞", rarity: "UR", chance: 0.375, image: "images/UR2.jpg" },
+                    { id: "c3", name: "【UR】光明・鳳王", rarity: "UR", chance: 0.375, image: "images/UR3.jpg" },
+                    { id: "c4", name: "【UR】對戰・鳳王", rarity: "UR", chance: 0.375, image: "images/UR4.jpg" },
+                    { id: "c5", name: "【UR】期間限定・Twice", rarity: "UR", chance: 0.375, image: "images/UR5.png" },
+                    { id: "c6", name: "【UR】籃球之神・喬丹", rarity: "UR", chance: 0.375, image: "images/MJ_UR.png" },
+                    { id: "c31", name: "【UR】期間限定・子瑜", rarity: "UR", chance: 0.375, image: "images/UR6.png" },
+                    { id: "c32", name: "【UR】期間限定・娜璉", rarity: "UR", chance: 0.375, image: "images/UR7.png" },
+
+                    { id: "c7", name: "【SSR】全圖洛奇亞", rarity: "SSR", chance: 1.5, image: "images/SSR1.jpg" },
+                    { id: "c8", name: "【SSR】異色洛奇亞", rarity: "SSR", chance: 1.5, image: "images/SSR2.jpg" },
+                    { id: "c9", name: "【SSR】浮雕洛奇亞", rarity: "SSR", chance: 1.5, image: "images/SSR3.jpg" },
+                    { id: "c10", name: "【SSR】全圖鳳王", rarity: "SSR", chance: 1.5, image: "images/SSR4.jpg" },
+                    { id: "c11", name: "【SSR】三分神射・Curry", rarity: "SSR", chance: 1.5, image: "images/SC_SSR.png" },
+                    { id: "c12", name: "【SSR】死神・KD", rarity: "SSR", chance: 1.5, image: "images/KD_SSR.png" },
+
+                    { id: "c13", name: "【SR】洛奇亞ex", rarity: "SR", chance: 3.0, image: "images/SR1.jpg" },
+                    { id: "c14", name: "【SR】鳳王ex", rarity: "SR", chance: 3.0, image: "images/SR2.jpg" },
+                    { id: "c15", name: "【SR】浴火狀元・康寧漢", rarity: "SR", chance: 3.0, image: "images/CC_SR.png" },
+                    { id: "c16", name: "【SR】鬍鬚張・哈登", rarity: "SR", chance: 3.0, image: "images/JH_SR.png" },
+                    { id: "c17", name: "【SR】城堡哥・Stephon Castle", rarity: "SR", chance: 3.0, image: "images/SC_SR.png" },
+
+                    { id: "c18", name: "【R】洛奇亞", rarity: "R", chance: 4.0, image: "images/R1.jpg" },
+                    { id: "c19", name: "【R】鳳王", rarity: "R", chance: 4.0, image: "images/R2.jpg" },
+                    { id: "c20", name: "【R】NBA陳奕迅・Tuner", rarity: "R", chance: 4.0, image: "images/MT_R.png" },
+                    { id: "c21", name: "【R】拳王・追夢綠", rarity: "R", chance: 4.0, image: "images/DG_R.png" },
+                    { id: "c22", name: "【R】泳池派聚・普爾", rarity: "R", chance: 4.0, image: "images/JP_R.png" },
+                    { id: "c23", name: "【R】冷凍王・苦命家", rarity: "R", chance: 4.0, image: "images/JK_R.png" },
+
+                    { id: "c24", name: "【N】小山豬", rarity: "N", chance: 7.0, image: "images/N1.jpg", synthTarget: "c_sp1" },
+                    { id: "c25", name: "【N】阿羅拉小拳石", rarity: "N", chance: 7.0, image: "images/N2.jpg", synthTarget: "c_sp1" },
+                    { id: "c26", name: "【N】小火龍", rarity: "N", chance: 7.0, image: "images/N3.jpg", synthTarget: "c_sp1" },
+                    { id: "c27", name: "【N】阿羅拉烏波", rarity: "N", chance: 7.0, image: "images/N4.jpg", synthTarget: "c_sp1" },
+                    { id: "c28", name: "【N】愛吃豚", rarity: "N", chance: 7.0, image: "images/N5.jpg", synthTarget: "c_sp1" },
+                    { id: "c29", name: "【N】原野水母", rarity: "N", chance: 7.0, image: "images/N6.jpg", synthTarget: "c_sp1" },
+                    { id: "c30", name: "【N】光蚵仔", rarity: "N", chance: 7.0, image: "images/N7.jpg", synthTarget: "c_sp1" }
+                ]
+            },
+            "phase2": {
+                name: "🏀 第二階段卡包",
+                cards: [
+                    { id: "n_sp1", name: "【SP】歷史・WBC臺灣首勝韓國", rarity: "SP", chance: 0, image: "images1/SP1.png" },
+                    
+                    { id: "n_u1", name: "【UR】特典版・Jokić", rarity: "UR", chance: 1.0, image: "images1/UR1.png" },
+                    { id: "n_u2", name: "【UR】特典版・SGA", rarity: "UR", chance: 1.0, image: "images1/UR2.png" }, 
+                    { id: "n_u3", name: "【UR】期間限定・多賢", rarity: "UR", chance: 1.0, image: "images1/UR3.png" },
+                    
+                    { id: "n_ss1", name: "【SSR】炫彩版・Jokic", rarity: "SSR", chance: 4.5, image: "images1/SSR1.png" },
+                    { id: "n_ss2", name: "【SSR】炫彩版・SGA", rarity: "SSR", chance: 4.5, image: "images1/SSR2.png" },
+                    
+                    { id: "n_s1", name: "【SR】特效版・字母哥", rarity: "SR", chance: 15.0, image: "images1/SR1.png" },
+                    
+                    { id: "n_r1", name: "【R】小丑皇・Nikola Jokić", rarity: "R", chance: 6.0, image: "images1/R1.png" },
+                    { id: "n_r2", name: "【R】新雷帝・SGA", rarity: "R", chance: 6.0, image: "images1/R2.png" },
+                    { id: "n_r3", name: "【R】字母哥・Giannis", rarity: "R", chance: 6.0, image: "images1/R3.png" },
+                    { id: "n_r4", name: "【R】亞洲統神", rarity: "R", chance: 6.0, image: "images1/R4.png" },
+                    
+                    { id: "n_n1", name: "【N】國動", rarity: "N", chance: 7.0, image: "images1/N6.png", synthTarget: "n_sp1" },
+                    { id: "n_n2", name: "【N】閃電鳥", rarity: "N", chance: 7.0, image: "images1/N1.jpg", synthTarget: "n_sp1" },
+                    { id: "n_n3", name: "【N】風速狗", rarity: "N", chance: 7.0, image: "images1/N2.jpg", synthTarget: "n_sp1" },
+                    { id: "n_n4", name: "【N】狗仔包", rarity: "N", chance: 7.0, image: "images1/N3.jpg", synthTarget: "n_sp1" },
+                    { id: "n_n5", name: "【N】新葉喵", rarity: "N", chance: 7.0, image: "images1/N4.jpg", synthTarget: "n_sp1" },
+                    { id: "n_n6", name: "【N】炭小侍", rarity: "N", chance: 7.0, image: "images1/N5.jpg", synthTarget: "n_sp1" },
+                    { id: "n_n7", name: "【N】古月鳥", rarity: "N", chance: 7.0, image: "images1/N6.jpg", synthTarget: "n_sp1" }
+                ]
+            },
+            "phase3": {
+                name: "🔒 尚未開放",
+                cards: []
+            }
+        };
+
+       // ==========================================
+        // 教師設定區：基本電學 全冊基本觀念 (45題魔王版) + 指定娛樂穿插
+        // ==========================================
+        const quizData = {
+            // --- 第 1 關：電荷與電流 ---
+            "q1": {
+                tag: "第 1 關：基本概念",
+                text: "電流的定義是「單位時間內流過截面積的電荷量」。如果 1 秒內有 1 庫侖的電荷流過，我們稱這個電流大小為多少？",
+                options: [
+                    { text: "A. 1 安培 (A)", next: "q2", isCorrect: true },
+                    { text: "B. 1 伏特 (V)", next: "q1_help", log: "Q1錯: 這是電壓單位" },
+                    { text: "C. 1 瓦特 (W)", next: "q1_help", log: "Q1錯: 這是功率單位" },
+                    { text: "D. 1 歐姆 (Ω)", next: "q1_help", log: "Q1錯: 這是電阻單位" }
+                ]
+            },
+            "q1_help": {
+                tag: "💊 救援任務：電流單位",
+                text: "公式 I = Q / t。庫侖除以秒，也就是電流的單位。電流的單位是以法國物理學家安培來命名的！",
+                options: [
+                    { text: "A. 1 安培 (A)", next: "q1", isCorrect: true },
+                    { text: "B. 1 伏特 (V)", next: "q1_help", log: "Q1救錯: 伏特是電壓的單位喔" }
+                ]
+            },
+
+            // --- 第 2 關：電能單位 ---
+            "q2": {
+                tag: "第 2 關：電能計算",
+                text: "家裡的電費帳單上，電能的計算單位是「度」。請問 1 度電等於多少功率使用多少時間？",
+                options: [
+                    { text: "A. 1 瓩 (1000W) 使用 1 小時", next: "q3", isCorrect: true },
+                    { text: "B. 1 瓦 (1W) 使用 1 小時", next: "q2_help", log: "Q2錯: 這樣度數太小了" },
+                    { text: "C. 100 瓦 (100W) 使用 1 分鐘", next: "q2_help", log: "Q2錯: 時間跟功率都不對" },
+                    { text: "D. 1 瓩 (1000W) 使用 1 秒鐘", next: "q2_help", log: "Q2錯: 時間是用小時算" }
+                ]
+            },
+            "q2_help": {
+                tag: "💊 救援任務：1 度電的定義",
+                text: "「度」的英文縮寫是 kWh (千瓦·小時)。也就是 1000 瓦 (1 瓩) 的吹風機，連續開 1 個小時所消耗的能量。",
+                options: [
+                    { text: "A. 1 瓩使用 1 小時", next: "q2", isCorrect: true },
+                    { text: "B. 1 瓦使用 1 小時", next: "q2_help", log: "Q2救錯: 1瓦太小了，是 1 千瓦！" }
+                ]
+            },
+
+            // --- 第 3 關：電導 ---
+            "q3": {
+                tag: "第 3 關：電導特性",
+                text: "電阻 (R) 是阻礙電流的能力，而「電導 (G)」則是讓電流通過的容易程度。電導是電阻的倒數，其單位為何？",
+                options: [
+                    { text: "A. 西門子 (S) 或 姆歐 (℧)", next: "q4", isCorrect: true },
+                    { text: "B. 歐姆 (Ω)", next: "q3_help", log: "Q3錯: 這是電阻的單位" },
+                    { text: "C. 法拉 (F)", next: "q3_help", log: "Q3錯: 這是電容的單位" },
+                    { text: "D. 亨利 (H)", next: "q3_help", log: "Q3錯: 這是電感的單位" }
+                ]
+            },
+            "q3_help": {
+                tag: "💊 救援任務：歐姆的反義詞",
+                text: "因為它是電阻的倒數，以前科學家很幽默，把歐姆(Ohm)倒過來拼成姆歐(Mho)，符號也把 Ω 倒過來寫。現在國際標準單位則稱為「西門子」。",
+                options: [
+                    { text: "A. 西門子 (S) 或 姆歐", next: "q3", isCorrect: true },
+                    { text: "B. 歐姆 (Ω)", next: "q3_help", log: "Q3救錯: 這是它的死對頭電阻啦" }
+                ]
+            },
+
+            // --- 第 4 關：色碼電阻 ---
+            "q4": {
+                tag: "第 4 關：色碼電阻",
+                text: "一個四環色碼電阻的顏色依序為「棕、黑、紅、金」，請問它的電阻值與誤差為何？",
+                options: [
+                    { text: "A. 1 kΩ，± 5%", next: "q5", isCorrect: true },
+                    { text: "B. 100 Ω，± 10%", next: "q4_help", log: "Q4錯: 紅色是兩個 0，10+00=1000" },
+                    { text: "C. 10 kΩ，± 5%", next: "q4_help", log: "Q4錯: 這樣第三環要是橘色" },
+                    { text: "D. 1 kΩ，± 10%", next: "q4_help", log: "Q4錯: 銀色才是 10%" }
+                ]
+            },
+            "q4_help": {
+                tag: "💊 救援任務：黑棕紅橙黃",
+                text: "口訣：黑0、棕1、紅2...。前兩環「棕(1)黑(0)」代表 10，第三環「紅(2)」代表加 2 個 0，也就是 1000 Ω (1 kΩ)。金色誤差是 5%。",
+                options: [
+                    { text: "A. 1 kΩ，± 5%", next: "q4", isCorrect: true },
+                    { text: "B. 100 Ω，± 5%", next: "q4_help", log: "Q4救錯: 第三環紅色是乘 100，所以是 1000 喔！" }
+                ]
+            },
+
+            // ⚔️ 第 5 關：娛樂 (忍者殺手)
+            "q5": {
+                tag: "⚔️ 第 5 關：大腦休息 (動漫)",
+                text: "來點輕鬆的！在硬派動漫《忍者殺手 (Ninja Slayer)》中，忍者之間在戰鬥前，有一項絕對不可違背的神聖規定，違反者會被視為無禮之徒（村八分）。請問是什麼？",
+                options: [
+                    { text: "A. 戰鬥前必須互相打招呼問候 (Aisatsu)", next: "q6", isCorrect: true },
+                    { text: "B. 必須先報上自己的三圍", next: "q5_help", log: "Q5錯: 這太奇怪了" },
+                    { text: "C. 雙方必須先一起吃壽司", next: "q5_help", log: "Q5錯: 壽司是補血用的，不用一起吃" },
+                    { text: "D. 要先大喊「南無三！」", next: "q5_help", log: "Q5錯: 這是驚訝時喊的" }
+                ]
+            },
+            "q5_help": {
+                tag: "💊 提示：禮儀之邦",
+                text: "「忍者在交戰前必須 Aisatsu（打招呼），古事記上是這麼寫的。」這是這部作品最經典的梗喔！",
+                options: [
+                    { text: "A. 必須互相打招呼", next: "q5", isCorrect: true },
+                    { text: "B. 一起吃壽司", next: "q5_help", log: "Q5救錯: 戰鬥中吃壽司會被對方偷襲吧！" }
+                ]
+            },
+
+            // --- 第 6 關：導線電阻 ---
+            "q6": {
+                tag: "第 6 關：電阻定律",
+                text: "導線的電阻大小，與導線的「長度」成正比，與「截面積」成反比。如果把一條導線的「半徑」拉長變成原來的 2 倍，電阻會變成原來的幾倍？",
+                options: [
+                    { text: "A. 1/4 倍", next: "q7", isCorrect: true },
+                    { text: "B. 1/2 倍", next: "q6_help", log: "Q6錯: 截面積是半徑的平方" },
+                    { text: "C. 2 倍", next: "q6_help", log: "Q6錯: 電阻會變小" },
+                    { text: "D. 4 倍", next: "q6_help", log: "Q6錯: 越粗電阻越小" }
+                ]
+            },
+            "q6_help": {
+                tag: "💊 救援任務：面積與半徑的平方",
+                text: "面積 = π × 半徑的平方。半徑變成 2 倍，面積就會變成 2² = 4 倍。面積變 4 倍，水管變超級粗，阻力(電阻)當然就剩下四分之一！",
+                options: [
+                    { text: "A. 1/4 倍", next: "q6", isCorrect: true },
+                    { text: "B. 1/2 倍", next: "q6_help", log: "Q6救錯: 記得要把半徑平方喔！" }
+                ]
+            },
+
+            // --- 第 7 關：溫度係數 ---
+            "q7": {
+                tag: "第 7 關：溫度與電阻",
+                text: "關於金屬導體（如銅、鋁）的「電阻溫度係數」，下列敘述何者正確？",
+                options: [
+                    { text: "A. 屬於正溫度係數 (PTC)，溫度升高，電阻變大", next: "q8", isCorrect: true },
+                    { text: "B. 屬於負溫度係數 (NTC)，溫度升高，電阻變小", next: "q7_help", log: "Q7錯: 這是半導體或絕緣體的特性" },
+                    { text: "C. 溫度對金屬電阻完全沒有影響", next: "q7_help", log: "Q7錯: 絕對有影響" },
+                    { text: "D. 溫度極低時，電阻會趨近無限大", next: "q7_help", log: "Q7錯: 溫度極低會變成超導體，電阻趨近於零" }
+                ]
+            },
+            "q7_help": {
+                tag: "💊 救援任務：熱脹冷縮的概念",
+                text: "金屬受熱時，裡面的原子震動變劇烈，電子要穿過去就容易撞到，阻力變大！所以金屬越熱，電阻就越「大」(正相關 PTC)。",
+                options: [
+                    { text: "A. 正溫度係數，電阻變大", next: "q7", isCorrect: true },
+                    { text: "B. 負溫度係數，電阻變小", next: "q7_help", log: "Q7救錯: 半導體才是變熱電阻變小喔" }
+                ]
+            },
+
+            // --- 第 8 關：串聯特性 ---
+            "q8": {
+                tag: "第 8 關：串聯電路",
+                text: "在一個只有單一迴路的「串聯電路」中，下列哪一個物理量在每一個元件上都「必定相等」？",
+                options: [
+                    { text: "A. 電流 (I)", next: "q9", isCorrect: true },
+                    { text: "B. 電壓 (V)", next: "q8_help", log: "Q8錯: 串聯會分壓，電壓不同" },
+                    { text: "C. 功率 (P)", next: "q8_help", log: "Q8錯: 功率會依電阻大小分配" },
+                    { text: "D. 電阻 (R)", next: "q8_help", log: "Q8錯: 元件本身電阻不一定相同" }
+                ]
+            },
+            "q8_help": {
+                tag: "💊 救援任務：單行道理論",
+                text: "串聯電路就像一條沒有分岔的單行道水管。流進去的水量，絕對等於流出來的水量。所以什麼東西處處相等？",
+                options: [
+                    { text: "A. 電流 (I)", next: "q8", isCorrect: true },
+                    { text: "B. 電壓 (V)", next: "q8_help", log: "Q8救錯: 串聯是電流一樣，並聯才是電壓一樣" }
+                ]
+            },
+
+            // --- 第 9 關：並聯分流 ---
+            "q9": {
+                tag: "第 9 關：並聯電路",
+                text: "有兩個電阻 3Ω 與 6Ω 並聯，總電流為 9A。根據「分流定則」，流過 3Ω 電阻的電流是多少？",
+                options: [
+                    { text: "A. 6 A", next: "q10", isCorrect: true },
+                    { text: "B. 3 A", next: "q9_help", log: "Q9錯: 這是流過 6Ω 的電流" },
+                    { text: "C. 4.5 A", next: "q9_help", log: "Q9錯: 並不是平分" },
+                    { text: "D. 9 A", next: "q9_help", log: "Q9錯: 這是一開始的總電流" }
+                ]
+            },
+            "q9_help": {
+                tag: "💊 救援任務：阻力小水流大",
+                text: "並聯分流與電阻成「反比」！電阻小的路比較好走，會分到比較多電流。3Ω 比較小，所以它會分到 (6 / (3+6)) × 9A = 6A。",
+                options: [
+                    { text: "A. 6 A", next: "q9", isCorrect: true },
+                    { text: "B. 3 A", next: "q9_help", log: "Q9救錯: 阻力小的分得少就違反物理常識啦！" }
+                ]
+            },
+
+            // 🏐 第 10 關：娛樂 (排球少年1)
+            "q10": {
+                tag: "🏐 第 10 關：大腦休息 (動漫)",
+                text: "休息一下！《排球少年》中，烏野高中被稱為「飛不起來的烏鴉」。請問在球隊中擔任「守護神」（自由球員），身高不高卻總能救起無數扣殺，最愛吃冰棒的是誰？",
+                options: [
+                    { text: "A. 西谷夕", next: "q11", isCorrect: true },
+                    { text: "B. 影山飛雄", next: "q10_help", log: "Q10錯: 影山是舉球員" },
+                    { text: "C. 月島螢", next: "q10_help", log: "Q10錯: 月島是極高大的攔網手" },
+                    { text: "D. 澤村大地", next: "q10_help", log: "Q10錯: 大地是隊長" }
+                ]
+            },
+            "q10_help": {
+                tag: "💊 提示：背後的守護者",
+                text: "他穿著跟別人不同顏色的球衣，名言是「只要球還沒落地，比賽就還沒結束！」。",
+                options: [
+                    { text: "A. 西谷夕", next: "q10", isCorrect: true },
+                    { text: "B. 影山飛雄", next: "q10_help", log: "Q10救錯: 影山是天才舉球員啦" }
+                ]
+            },
+
+            // --- 第 11 關：惠斯登電橋 ---
+            "q11": {
+                tag: "第 11 關：電橋電路",
+                text: "當「惠斯登電橋 (Wheatstone Bridge)」達到平衡時，中間的檢流計電流為零。請問電橋平衡的條件為何？",
+                options: [
+                    { text: "A. 對角線的電阻相乘相等", next: "q12", isCorrect: true },
+                    { text: "B. 對角線的電阻相加相等", next: "q11_help", log: "Q11錯: 是相乘不是相加" },
+                    { text: "C. 四個電阻必須完全一樣大", next: "q11_help", log: "Q11錯: 不必一樣大，比例對即可" },
+                    { text: "D. 交叉相除等於零", next: "q11_help", log: "Q11錯: 沒有這種條件" }
+                ]
+            },
+            "q11_help": {
+                tag: "💊 救援任務：交叉相乘",
+                text: "惠斯登電橋平衡時，中間那條橋會形同虛設（斷路）。判斷平衡的超強口訣就是：「對角線電阻『相乘』會相等」。",
+                options: [
+                    { text: "A. 對角相乘相等", next: "q11", isCorrect: true },
+                    { text: "B. 對角相加相等", next: "q11_help", log: "Q11救錯: 是乘法喔！" }
+                ]
+            },
+
+            // --- 第 12 關：KVL ---
+            "q12": {
+                tag: "第 12 關：克希荷夫定律",
+                text: "克希荷夫電壓定律 (KVL) 指出：在一個封閉的迴路中，所有的「電壓升」與「電壓降」的代數和必定等於多少？",
+                options: [
+                    { text: "A. 0", next: "q13", isCorrect: true },
+                    { text: "B. 電源電壓的兩倍", next: "q12_help", log: "Q12錯: 不符合能量守恆" },
+                    { text: "C. 無限大", next: "q12_help", log: "Q12錯: 這不科學" },
+                    { text: "D. 迴路的總電阻值", next: "q12_help", log: "Q12錯: 單位完全不同" }
+                ]
+            },
+            "q12_help": {
+                tag: "💊 救援任務：能量守恆",
+                text: "KVL 就是能量守恆定律在電路的應用。你帶出門的錢 (電源電壓升)，買東西花掉的錢 (電阻電壓降)，回到家時身上一定剩下多少錢？",
+                options: [
+                    { text: "A. 0", next: "q12", isCorrect: true },
+                    { text: "B. 100", next: "q12_help", log: "Q12救錯: 花光光了，剩下 0 啦！" }
+                ]
+            },
+
+            // --- 第 13 關：KCL ---
+            "q13": {
+                tag: "第 13 關：克希荷夫定律",
+                text: "克希荷夫電流定律 (KCL) 指出：流進一個節點的總電流，必定等於什麼？",
+                options: [
+                    { text: "A. 流出該節點的總電流", next: "q14", isCorrect: true },
+                    { text: "B. 0", next: "q13_help", log: "Q13錯: 這是電壓迴路的定義" },
+                    { text: "C. 流進電流的一半", next: "q13_help", log: "Q13錯: 電流不會憑空消失" },
+                    { text: "D. 電壓與電阻的乘積", next: "q13_help", log: "Q13錯: 這是毫無關聯的敘述" }
+                ]
+            },
+            "q13_help": {
+                tag: "💊 救援任務：電荷守恆",
+                text: "KCL 是電荷守恆定律。就像一個十字路口，開進路口的車子數量，一定等於開出路口的車子數量，車子不會在路口憑空蒸發。所以流進必定等於？",
+                options: [
+                    { text: "A. 流出的總電流", next: "q13", isCorrect: true },
+                    { text: "B. 0", next: "q13_help", log: "Q13救錯: 水流進來一定會流出去，不會變成 0" }
+                ]
+            },
+
+            // --- 第 14 關：戴維寧等效電壓 ---
+            "q14": {
+                tag: "第 14 關：直流網路定理",
+                text: "要找尋一個複雜電路的「戴維寧等效電壓 (E_th)」時，我們必須把負載端做什麼處置，然後測量兩端的電壓？",
+                options: [
+                    { text: "A. 拔掉負載，保持開路 (Open)", next: "q15", isCorrect: true },
+                    { text: "B. 將負載兩端短路 (Short)", next: "q14_help", log: "Q14錯: 這是求諾頓電流的方法" },
+                    { text: "C. 換上一個 1Ω 的電阻", next: "q14_help", log: "Q14錯: 沒有這種做法" },
+                    { text: "D. 接上接地線", next: "q14_help", log: "Q14錯: 不需要接地" }
+                ]
+            },
+            "q14_help": {
+                tag: "💊 救援任務：戴維寧的開路",
+                text: "戴維寧等效電壓 (E_th) 又被稱為「開路電壓」。所以第一步當然是把要計算的負載拔掉，讓那個地方呈現什麼狀態？",
+                options: [
+                    { text: "A. 保持開路 (拔掉)", next: "q14", isCorrect: true },
+                    { text: "B. 兩端短路", next: "q14_help", log: "Q14救錯: 短路(連起來)是求電流用的" }
+                ]
+            },
+
+            // --- 第 15 關：最大功率轉移 ---
+            "q15": {
+                tag: "第 15 關：直流網路定理",
+                text: "根據最大功率轉移定理，當負載電阻 R_L 為多少時，可以從電源電路 (戴維寧等效電阻為 R_th) 獲得最大的功率？",
+                options: [
+                    { text: "A. R_L = R_th", next: "q16", isCorrect: true },
+                    { text: "B. R_L = 0", next: "q15_help", log: "Q15錯: R=0 時消耗功率為 0" },
+                    { text: "C. R_L 無限大", next: "q15_help", log: "Q15錯: 電流為 0，功率為 0" },
+                    { text: "D. R_L = 2 × R_th", next: "q15_help", log: "Q15錯: 必須完全相等" }
+                ]
+            },
+            "q15_help": {
+                tag: "💊 救援任務：完美的門當戶對",
+                text: "要傳遞最大的能量，外面接的負載電阻，必須跟機器內部的阻抗「完美匹配、完全一樣大」。所以 R_L 必須等於什麼？",
+                options: [
+                    { text: "A. R_L = R_th", next: "q15", isCorrect: true },
+                    { text: "B. R_L = 0", next: "q15_help", log: "Q15救錯: 要一模一樣大啦！" }
+                ]
+            },
+
+            // 🎵 第 16 關：娛樂 ((G)I-DLE 1)
+            "q16": {
+                tag: "🎵 第 16 關：大腦休息 (K-POP)",
+                text: "聽歌放鬆！韓國人氣女團 (G)I-DLE 的隊長，不僅負責大部分歌曲的作詞作曲，還被韓國樂壇譽為「天才製作人」的成員是誰？",
+                options: [
+                    { text: "A. 小娟 (Soyeon)", next: "q17", isCorrect: true },
+                    { text: "B. 舒華 (Shuhua)", next: "q16_help", log: "Q16錯: 舒華是忙內兼門面" },
+                    { text: "C. 薇娟 (Miyeon)", next: "q16_help", log: "Q16錯: 薇娟是主唱" },
+                    { text: "D. 雨琦 (Yuqi)", next: "q16_help", log: "Q16錯: 雨琦是副唱與領舞" }
+                ]
+            },
+            "q16_help": {
+                tag: "💊 提示：超強隊長",
+                text: "她在選秀節目中展現了超強的 Rap 實力，一手包辦了《Tomboy》、《Queencard》等名曲的創作，氣場超級強大！",
+                options: [
+                    { text: "A. 小娟", next: "q16", isCorrect: true },
+                    { text: "B. 舒華", next: "q16_help", log: "Q16救錯: 舒華負責搞笑跟嗆網友(X)" }
+                ]
+            },
+
+            // --- 第 17 關：諾頓等效 ---
+            "q17": {
+                tag: "第 17 關：直流網路定理",
+                text: "相較於戴維寧等效電路是「電壓源串聯電阻」，「諾頓等效電路 (Norton)」的組成是什麼形式？",
+                options: [
+                    { text: "A. 電流源『並聯』電阻", next: "q18", isCorrect: true },
+                    { text: "B. 電流源『串聯』電阻", next: "q17_help", log: "Q17錯: 電流源串聯電阻無法對外分流" },
+                    { text: "C. 電壓源『並聯』電阻", next: "q17_help", log: "Q17錯: 這是沒有意義的轉換" },
+                    { text: "D. 只有一個單純的電流源", next: "q17_help", log: "Q17錯: 必須包含內阻" }
+                ]
+            },
+            "q17_help": {
+                tag: "💊 救援任務：諾頓的形狀",
+                text: "戴維寧是「電壓源串聯」。根據電源轉換定理，電壓變電流，串聯就要變「並聯」。所以諾頓是電流源搭配什麼？",
+                options: [
+                    { text: "A. 電流源並聯電阻", next: "q17", isCorrect: true },
+                    { text: "B. 電流源串聯電阻", next: "q17_help", log: "Q17救錯: 串聯要改成並聯啦！" }
+                ]
+            },
+
+            // --- 第 18 關：重疊定理 ---
+            "q18": {
+                tag: "第 18 關：直流網路定理",
+                text: "使用「重疊定理」分析多個電源的電路時，當我們單獨保留一個電源，其餘的「理想電壓源」與「理想電流源」應該分別如何處理？",
+                options: [
+                    { text: "A. 電壓源短路 (Short)；電流源開路 (Open)", next: "q19", isCorrect: true },
+                    { text: "B. 電壓源開路；電流源短路", next: "q18_help", log: "Q18錯: 完全搞反了" },
+                    { text: "C. 全部短路", next: "q18_help", log: "Q18錯: 這樣不符合電流源特性" },
+                    { text: "D. 全部開路", next: "q18_help", log: "Q18錯: 這樣不符合電壓源特性" }
+                ]
+            },
+            "q18_help": {
+                tag: "💊 救援任務：消除電源",
+                text: "要把電壓變成 0，就是把兩端接在一起 (短路)；要把電流變成 0，就是把電線剪斷不讓水流 (開路)。",
+                options: [
+                    { text: "A. 電壓源短路，電流源開路", next: "q18", isCorrect: true },
+                    { text: "B. 電壓源開路，電流源短路", next: "q18_help", log: "Q18救錯: 記反了！電壓是短路喔！" }
+                ]
+            },
+
+            // --- 第 19 關：電容串聯 ---
+            "q19": {
+                tag: "第 19 關：電容與靜電",
+                text: "有兩個電容分別為 3μF 與 6μF，將它們「串聯」後，總電容量為多少？",
+                options: [
+                    { text: "A. 2 μF", next: "q20", isCorrect: true },
+                    { text: "B. 9 μF", next: "q19_help", log: "Q19錯: 這是並聯的算法" },
+                    { text: "C. 4.5 μF", next: "q19_help", log: "Q19錯: 這不是平均" },
+                    { text: "D. 18 μF", next: "q19_help", log: "Q19錯: 直接相乘是錯的" }
+                ]
+            },
+            "q19_help": {
+                tag: "💊 救援任務：與電阻相反",
+                text: "統測必考！電容的串並聯算法，剛好跟電阻「完全相反」。電容「串聯」要用「相乘除以相加」！ (3*6)/(3+6) = ?",
+                options: [
+                    { text: "A. 2 μF", next: "q19", isCorrect: true },
+                    { text: "B. 9 μF", next: "q19_help", log: "Q19救錯: 加起來是並聯才用的啦！" }
+                ]
+            },
+
+            // --- 第 20 關：電容儲能 ---
+            "q20": {
+                tag: "第 20 關：電容與靜電",
+                text: "一個電容量為 C 的電容器，充飽了電壓 V，請問它內部儲存的靜電能量 (W) 公式為何？",
+                options: [
+                    { text: "A. W = 1/2 C V²", next: "q21", isCorrect: true },
+                    { text: "B. W = C V", next: "q20_help", log: "Q20錯: 這是電荷量 Q 的公式" },
+                    { text: "C. W = 1/2 V C²", next: "q20_help", log: "Q20錯: 平方放錯位置了" },
+                    { text: "D. W = C² V²", next: "q20_help", log: "Q20錯: 係數和指數都錯" }
+                ]
+            },
+            "q20_help": {
+                tag: "💊 救援任務：動能的影子",
+                text: "電容儲能公式長得很像物理學的動能公式 (1/2 mv²)。這裡把質量換成電容 C，速度換成電壓 V。請選出正確的：",
+                options: [
+                    { text: "A. 1/2 C V²", next: "q20", isCorrect: true },
+                    { text: "B. C V", next: "q20_help", log: "Q20救錯: 這是 Q=CV，算電荷量用的" }
+                ]
+            },
+
+            // --- 第 21 關：庫侖定律 ---
+            "q21": {
+                tag: "第 21 關：電容與靜電",
+                text: "根據庫侖定律，兩個點電荷之間的作用力大小，與兩者的距離平方成什麼關係？",
+                options: [
+                    { text: "A. 反比", next: "q22", isCorrect: true },
+                    { text: "B. 正比", next: "q21_help", log: "Q21錯: 距離越遠力量越弱，所以是反比" },
+                    { text: "C. 無關", next: "q21_help", log: "Q21錯: 距離絕對有影響" },
+                    { text: "D. 恆為常數", next: "q21_help", log: "Q21錯: 隨距離改變" }
+                ]
+            },
+            "q21_help": {
+                tag: "💊 救援任務：距離產生美感",
+                text: "磁鐵或靜電，拿得越「遠」，吸力或排斥力就越「小」。這種一個變大另一個變小的關係，在數學上稱為什麼？",
+                options: [
+                    { text: "A. 反比", next: "q21", isCorrect: true },
+                    { text: "B. 正比", next: "q21_help", log: "Q21救錯: 正比代表越遠吸力越強，這不科學啊" }
+                ]
+            },
+
+            // 🏐 第 22 關：娛樂 (排球少年 2)
+            "q22": {
+                tag: "🏐 第 22 關：大腦休息 (動漫)",
+                text: "動漫時間！在《排球少年》中，烏野高中宿命的對手是「音駒高中」。音駒的戰術核心，平時懶洋洋喜歡打電動，被稱為「音駒的大腦」的舉球員是誰？",
+                options: [
+                    { text: "A. 孤爪研磨", next: "q23", isCorrect: true },
+                    { text: "B. 黑尾鐵朗", next: "q22_help", log: "Q22錯: 黑尾是隊長，擅長攔網" },
+                    { text: "C. 灰羽列夫", next: "q22_help", log: "Q22錯: 列夫是混血兒快攻手" },
+                    { text: "D. 夜久衛輔", next: "q22_help", log: "Q22錯: 夜久是自由球員" }
+                ]
+            },
+            "q22_help": {
+                tag: "💊 提示：布丁頭",
+                text: "他染著一顆像布丁一樣的頭髮，跟男主角日向翔陽是非常好的朋友。名叫什麼？",
+                options: [
+                    { text: "A. 孤爪研磨", next: "q22", isCorrect: true },
+                    { text: "B. 黑尾鐵朗", next: "q22_help", log: "Q22救錯: 黑尾是那個刺蝟頭隊長啦" }
+                ]
+            },
+
+            // --- 第 23 關：法拉第定律 ---
+            "q23": {
+                tag: "第 23 關：電感與電磁",
+                text: "線圈兩端產生的「感應電動勢 (電壓)」，其大小與「磁通量變化的速率」成正比。這是哪一位科學家提出的定律？",
+                options: [
+                    { text: "A. 法拉第定律 (Faraday's law)", next: "q24", isCorrect: true },
+                    { text: "B. 楞次定律 (Lenz's law)", next: "q23_help", log: "Q23錯: 楞次是決定電壓方向(負號)的" },
+                    { text: "C. 安培定律", next: "q23_help", log: "Q23錯: 這是電流產生磁場的定律" },
+                    { text: "D. 庫侖定律", next: "q23_help", log: "Q23錯: 這是靜電力定律" }
+                ]
+            },
+            "q23_help": {
+                tag: "💊 救援任務：發電機之父",
+                text: "這項發現奠定了人類發電機的基礎。公式是 e = N(ΔΦ/Δt)，這被稱為「電磁感應之父」的誰的定律？",
+                options: [
+                    { text: "A. 法拉第", next: "q23", isCorrect: true },
+                    { text: "B. 楞次", next: "q23_help", log: "Q23救錯: 楞次是幫他在公式前面加負號的人" }
+                ]
+            },
+
+            // --- 第 24 關：楞次定律 ---
+            "q24": {
+                tag: "第 24 關：電感與電磁",
+                text: "承上題，感應電動勢的「方向」，永遠會「反抗」原本造成此感應的磁通量變化。這個判斷方向的定律是？",
+                options: [
+                    { text: "A. 楞次定律 (Lenz's law)", next: "q25", isCorrect: true },
+                    { text: "B. 法拉第定律", next: "q24_help", log: "Q24錯: 法拉第只管大小，不管方向" },
+                    { text: "C. 歐姆定律", next: "q24_help", log: "Q24錯: 這是電壓電流電阻的關係" },
+                    { text: "D. 高斯定律", next: "q24_help", log: "Q24錯: 這是電磁場通量計算" }
+                ]
+            },
+            "q24_help": {
+                tag: "💊 救援任務：唱反調的定律",
+                text: "法拉第發現了大小，而這位科學家在公式前面加了一個「負號 (-e)」，代表線圈是個傲嬌，外加磁場增加它就抵消，減少它就補充。這是誰？",
+                options: [
+                    { text: "A. 楞次", next: "q24", isCorrect: true },
+                    { text: "B. 安培", next: "q24_help", log: "Q24救錯: 安培定律是右手安培定則啦" }
+                ]
+            },
+
+            // --- 第 25 關：電感儲能 ---
+            "q25": {
+                tag: "第 25 關：電感與電磁",
+                text: "一個電感量為 L 的電感器，當流過電流 I 時，它會以磁場的形式儲存能量。請問其儲能公式 (W) 為何？",
+                options: [
+                    { text: "A. W = 1/2 L I²", next: "q26", isCorrect: true },
+                    { text: "B. W = 1/2 L V²", next: "q25_help", log: "Q25錯: 電感看電流，電容才看電壓" },
+                    { text: "C. W = L I", next: "q25_help", log: "Q25錯: 這是磁通量鏈交數" },
+                    { text: "D. W = 1/2 C V²", next: "q25_help", log: "Q25錯: 這是電容的公式" }
+                ]
+            },
+            "q25_help": {
+                tag: "💊 救援任務：動能兄弟",
+                text: "電容儲存電場能量 (1/2 CV²)。電感儲存「磁場」能量，而且電感最在乎的是「電流(I)」。把 C 換成 L，V 換成 I 就對了！",
+                options: [
+                    { text: "A. 1/2 L I²", next: "q25", isCorrect: true },
+                    { text: "B. 1/2 L V²", next: "q25_help", log: "Q25救錯: 電感不喜歡電壓，喜歡電流！" }
+                ]
+            },
+
+            // --- 第 26 關：RC 時間常數 ---
+            "q26": {
+                tag: "第 26 關：直流暫態",
+                text: "在 RC (電阻-電容) 串聯充電電路中，決定充電快慢的「時間常數 (τ，tau)」公式為何？",
+                options: [
+                    { text: "A. τ = R × C", next: "q27", isCorrect: true },
+                    { text: "B. τ = R / C", next: "q26_help", log: "Q26錯: 單位不對" },
+                    { text: "C. τ = C / R", next: "q26_help", log: "Q26錯: 單位不對" },
+                    { text: "D. τ = 1 / (RC)", next: "q26_help", log: "Q26錯: 這是頻率的單位" }
+                ]
+            },
+            "q26_help": {
+                tag: "💊 救援任務：最直觀的公式",
+                text: "阻力(R)越大充越慢，水缸(C)越大也要充越久。所以時間常數跟兩者都是正比。直接把兩個字母相乘就是答案了！",
+                options: [
+                    { text: "A. τ = R × C", next: "q26", isCorrect: true },
+                    { text: "B. τ = R / C", next: "q26_help", log: "Q26救錯: 除法就變反比了，不對喔" }
+                ]
+            },
+
+            // 🎵 第 27 關：娛樂 ((G)I-DLE 2)
+            "q27": {
+                tag: "🎵 第 27 關：大腦休息 (K-POP)",
+                text: "休息時間！(G)I-DLE 席捲全球的神曲《Queencard》，其歌詞與 MV 想要傳達的核心訊息是什麼？",
+                options: [
+                    { text: "A. 接受不完美的自己，自信就是最美的", next: "q28", isCorrect: true },
+                    { text: "B. 炫耀自己很有錢可以買很多名牌", next: "q27_help", log: "Q27錯: 這不是歌曲主旨" },
+                    { text: "C. 成為校園裡最會欺負人的霸凌者", next: "q27_help", log: "Q27錯: MV 裡反而是反對這種行為" },
+                    { text: "D. 宣傳最新發行的信用卡", next: "q27_help", log: "Q27錯: Queencard 只是撲克牌的 Q" }
+                ]
+            },
+            "q27_help": {
+                tag: "💊 提示：自信女王",
+                text: "MV 中女主角原本想去整形，但最後領悟到，不需要迎合別人的眼光，只要有「自信」，人人都是自己的 Queen！",
+                options: [
+                    { text: "A. 自信就是最美的", next: "q27", isCorrect: true },
+                    { text: "B. 宣傳信用卡", next: "q27_help", log: "Q27救錯: 這不是業配歌啦！" }
+                ]
+            },
+
+            // --- 第 28 關：RL 時間常數 ---
+            "q28": {
+                tag: "第 28 關：直流暫態",
+                text: "回到電學。在 RL (電阻-電感) 串聯電路中，「時間常數 (τ)」的公式與 RC 電路不同。請問 RL 電路的時間常數公式為何？",
+                options: [
+                    { text: "A. τ = L / R", next: "q29", isCorrect: true },
+                    { text: "B. τ = R / L", next: "q28_help", log: "Q28錯: 顛倒了" },
+                    { text: "C. τ = R × L", next: "q28_help", log: "Q28錯: 這是 RC 的算法" },
+                    { text: "D. τ = 1 / (RL)", next: "q28_help", log: "Q28錯: 單位錯誤" }
+                ]
+            },
+            "q28_help": {
+                tag: "💊 救援任務：L 在上",
+                text: "RL 電路的時間常數，電感 L 喜歡高高在上（分子），電阻 R 在下面（分母）。",
+                options: [
+                    { text: "A. τ = L / R", next: "q28", isCorrect: true },
+                    { text: "B. τ = R × L", next: "q28_help", log: "Q28救錯: 這是 RC 才能直接相乘喔" }
+                ]
+            },
+
+            // --- 第 29 關：電容穩態 ---
+            "q29": {
+                tag: "第 29 關：暫態與穩態",
+                text: "在直流電路中，當充電時間經過 5 個時間常數 (5τ) 後，視為達到「穩態」。此時「電容器 (C)」在電路中等效於什麼狀態？",
+                options: [
+                    { text: "A. 開路 (斷路, Open)", next: "q30", isCorrect: true },
+                    { text: "B. 短路 (Short)", next: "q29_help", log: "Q29錯: 電感穩態才是短路" },
+                    { text: "C. 理想電壓源", next: "q29_help", log: "Q29錯: 它沒有持續發電能力" },
+                    { text: "D. 理想電流源", next: "q29_help", log: "Q29錯: 它不會產生恆定電流" }
+                ]
+            },
+            "q29_help": {
+                tag: "💊 救援任務：水缸裝滿了",
+                text: "電容就像水缸，充飽電 (穩態) 之後，水就再也流不進去了。水流不過去，在電路中就等同於電線被剪斷。叫做什麼？",
+                options: [
+                    { text: "A. 開路 (斷路)", next: "q29", isCorrect: true },
+                    { text: "B. 短路", next: "q29_help", log: "Q29救錯: 短路代表水流無限通暢，完全相反喔！" }
+                ]
+            },
+
+            // --- 第 30 關：電感穩態 ---
+            "q30": {
+                tag: "第 30 關：暫態與穩態",
+                text: "承上題，在直流電路達到「穩態」後，「電感器 (L)」在電路中等效於什麼狀態？",
+                options: [
+                    { text: "A. 短路 (Short)", next: "q31", isCorrect: true },
+                    { text: "B. 開路 (斷路, Open)", next: "q30_help", log: "Q30錯: 這是電容的穩態" },
+                    { text: "C. 理想電壓源", next: "q30_help", log: "Q30錯: 錯誤" },
+                    { text: "D. 斷線", next: "q30_help", log: "Q30錯: 斷線就是開路" }
+                ]
+            },
+            "q30_help": {
+                tag: "💊 救援任務：電容的顛倒",
+                text: "電感跟電容的個性永遠相反！既然電容穩態是開路(斷掉)；那電感穩態就是完全通暢的一條普通電線。這叫做什麼？",
+                options: [
+                    { text: "A. 短路 (一條線)", next: "q30", isCorrect: true },
+                    { text: "B. 開路", next: "q30_help", log: "Q30救錯: 這是電容的狀態啦" }
+                ]
+            },
+
+            // --- 第 31 關：交流有效值 ---
+            "q31": {
+                tag: "第 31 關：交流電",
+                text: "家庭插座常說的「110V 交流電」，這個 110V 指的是交流波形的哪一種數值？",
+                options: [
+                    { text: "A. 有效值 (RMS值)", next: "q32", isCorrect: true },
+                    { text: "B. 最大值 (峰值)", next: "q31_help", log: "Q31錯: 最大值其實是大約 155V" },
+                    { text: "C. 平均值", next: "q31_help", log: "Q31錯: 弦波完整一週期的平均值是 0" },
+                    { text: "D. 峰對峰值", next: "q31_help", log: "Q31錯: 那會是 310V" }
+                ]
+            },
+            "q31_help": {
+                tag: "💊 救援任務：做功的能力",
+                text: "我們說的電壓，是指「這交流電產生熱能的能力，相當於多少伏特的直流電」。這種等效做功數值，稱為什麼值？",
+                options: [
+                    { text: "A. 有效值 (RMS)", next: "q31", isCorrect: true },
+                    { text: "B. 最大值", next: "q31_help", log: "Q31救錯: 最大值只有瞬間達到，不能代表整體能力" }
+                ]
+            },
+
+            // --- 第 32 關：市電頻率週期 ---
+            "q32": {
+                tag: "第 32 關：交流電",
+                text: "台灣的市電頻率是 60 Hz。請問交流波形每完成「一個完整週期 (T)」，需要多少秒？",
+                options: [
+                    { text: "A. 1/60 秒", next: "q33", isCorrect: true },
+                    { text: "B. 60 秒", next: "q32_help", log: "Q32錯: 那是頻率倒過來算" },
+                    { text: "C. 1 秒", next: "q32_help", log: "Q32錯: 1秒內完成了 60 次" },
+                    { text: "D. 0.6 秒", next: "q32_help", log: "Q32錯: 計算錯誤" }
+                ]
+            },
+            "q32_help": {
+                tag: "💊 救援任務：頻率與週期的倒數",
+                text: "頻率 (f) 代表「1秒鐘轉幾圈」；週期 (T) 則是「轉1圈要幾秒」。兩者互為倒數： T = 1 / f。所以 60Hz 的週期是？",
+                options: [
+                    { text: "A. 1/60 秒", next: "q32", isCorrect: true },
+                    { text: "B. 60 秒", next: "q32_help", log: "Q32救錯: 轉一圈要 60 秒也太慢了吧！" }
+                ]
+            },
+
+            // --- 第 33 關：純電容相位 ---
+            "q33": {
+                tag: "第 33 關：基本交流電路",
+                text: "在「純電容 (C)」的交流電路中，電壓 (V) 與電流 (I) 的相位關係為何？",
+                options: [
+                    { text: "A. 電流 (I) 超前電壓 (V) 90 度", next: "q34", isCorrect: true },
+                    { text: "B. 電壓 (V) 超前電流 (I) 90 度", next: "q33_help", log: "Q33錯: 這是純電感的特性" },
+                    { text: "C. 電壓與電流同相 (0度)", next: "q33_help", log: "Q33錯: 這是純電阻的特性" },
+                    { text: "D. 電流反相 180 度", next: "q33_help", log: "Q33錯: 沒有這種元件" }
+                ]
+            },
+            "q33_help": {
+                tag: "💊 救援任務：口訣 ICE",
+                text: "統測必背口訣「ICE (冰塊)」！中間是電容(C)，前面是電流(I)，後面是電壓(E/V)。這代表在電容(C)中，電流(I)跑在電壓(E)的前面！",
+                options: [
+                    { text: "A. 電流超前 90 度", next: "q33", isCorrect: true },
+                    { text: "B. 電壓超前 90 度", next: "q33_help", log: "Q33救錯: 那是 ELI (電感) 的口訣喔！" }
+                ]
+            },
+
+            // --- 第 34 關：阻抗定義 ---
+            "q34": {
+                tag: "第 34 關：交流阻抗",
+                text: "交流電路中，將電阻 (R) 與電抗 (X) 組合起來，表示電路整體阻礙電流的能力，稱為什麼？(通常符號為 Z)",
+                options: [
+                    { text: "A. 阻抗 (Impedance)", next: "q35", isCorrect: true },
+                    { text: "B. 導納 (Admittance)", next: "q34_help", log: "Q34錯: 導納是阻抗的倒數" },
+                    { text: "C. 電感 (Inductance)", next: "q34_help", log: "Q34錯: 這只是 L" },
+                    { text: "D. 磁抗 (Magnetic reactance)", next: "q34_help", log: "Q34錯: 名詞捏造" }
+                ]
+            },
+            "q34_help": {
+                tag: "💊 救援任務：綜合抵抗",
+                text: "電阻 R 管發熱，電抗 X 管相位。把它們兩兄弟用畢氏定理合在一起，形成一個總抵抗力 Z。這個 Z 的中文叫什麼？",
+                options: [
+                    { text: "A. 阻抗", next: "q34", isCorrect: true },
+                    { text: "B. 導納", next: "q34_help", log: "Q34救錯: 導納(Y) 是暢通的程度，是倒數啦" }
+                ]
+            },
+
+            // --- 第 35 關：實功率單位 ---
+            "q35": {
+                tag: "第 35 關：交流功率",
+                text: "在交流電路中，真正會消耗能量作功（例如發熱發光）的功率稱為「有效功率 (實功率, P)」。其單位為何？",
+                options: [
+                    { text: "A. 瓦特 (W)", next: "q36", isCorrect: true },
+                    { text: "B. 伏安 (VA)", next: "q35_help", log: "Q35錯: 這是視在功率 S 的單位" },
+                    { text: "C. 乏 (VAR)", next: "q35_help", log: "Q35錯: 這是無效(虛)功率 Q 的單位" },
+                    { text: "D. 焦耳 (J)", next: "q35_help", log: "Q35錯: 這是能量單位，不是功率" }
+                ]
+            },
+            "q35_help": {
+                tag: "💊 救援任務：家裡的燈泡",
+                text: "有效功率就像是你買燈泡時看的亮度指標，或是吹風機的耗電量。最常見的單位就是 W。",
+                options: [
+                    { text: "A. 瓦特 (W)", next: "q35", isCorrect: true },
+                    { text: "B. 伏安 (VA)", next: "q35_help", log: "Q35救錯: 伏安是台電送過來的總功率單位" }
+                ]
+            },
+
+            // --- 第 36 關：視在功率單位 ---
+            "q36": {
+                tag: "第 36 關：交流功率",
+                text: "承上題，台電發電機送出來的總功率，包含了有效與無效功率，這稱為「視在功率 (S)」。其單位為何？",
+                options: [
+                    { text: "A. 伏安 (VA)", next: "q37", isCorrect: true },
+                    { text: "B. 瓦特 (W)", next: "q36_help", log: "Q36錯: 這是有效功率" },
+                    { text: "C. 乏 (VAR)", next: "q36_help", log: "Q36錯: 這是無效功率" },
+                    { text: "D. 歐姆 (Ω)", next: "q36_help", log: "Q36錯: 這是電阻" }
+                ]
+            },
+            "q36_help": {
+                tag: "💊 救援任務：公式即單位",
+                text: "視在功率 (S) 的公式最簡單，就是 電壓(V) 乘以 電流(I)。把 V 的單位「伏特」跟 I 的單位「安培」合在一起唸就是答案了！",
+                options: [
+                    { text: "A. 伏安 (VA)", next: "q36", isCorrect: true },
+                    { text: "B. 瓦特 (W)", next: "q36_help", log: "Q36救錯: W 是有作功的有效功率喔" }
+                ]
+            },
+
+            // --- 第 37 關：功率因數定義 ---
+            "q37": {
+                tag: "第 37 關：交流功率",
+                text: "「功率因數 (Power Factor, PF)」代表著設備使用電力的效率。它的定義是哪兩個功率的比值？",
+                options: [
+                    { text: "A. 有效功率 (P) / 視在功率 (S)", next: "q38", isCorrect: true },
+                    { text: "B. 無效功率 (Q) / 有效功率 (P)", next: "q37_help", log: "Q37錯: 這是 tanθ 的定義" },
+                    { text: "C. 視在功率 (S) / 有效功率 (P)", next: "q37_help", log: "Q37錯: 上下顛倒了" },
+                    { text: "D. 電壓 / 電流", next: "q37_help", log: "Q37錯: 這是阻抗 Z" }
+                ]
+            },
+            "q37_help": {
+                tag: "💊 救援任務：效率的意義",
+                text: "效率就是「你真正用到的(P)」除以「總共給你多少(S)」。台電給了你 100 單位，你真正作功用了 80 單位，PF 就是 0.8！",
+                options: [
+                    { text: "A. 有效功率 / 視在功率", next: "q37", isCorrect: true },
+                    { text: "B. 視在功率 / 有效功率", next: "q37_help", log: "Q37救錯: 這樣算出來效率大於1，違反物理法則！" }
+                ]
+            },
+
+            // --- 第 38 關：諧振條件 ---
+            "q38": {
+                tag: "第 38 關：諧振電路",
+                text: "在 RLC 串聯電路中，要發生「諧振 (Resonance)」的絕對條件是什麼？",
+                options: [
+                    { text: "A. 感抗等於容抗 (XL = XC)", next: "q39", isCorrect: true },
+                    { text: "B. 電阻等於零 (R = 0)", next: "q38_help", log: "Q38錯: R是消耗能量的，不影響諧振點" },
+                    { text: "C. 感抗大於容抗 (XL > XC)", next: "q38_help", log: "Q38錯: 這樣呈電感性" },
+                    { text: "D. 電流為零", next: "q38_help", log: "Q38錯: 串聯諧振電流最大" }
+                ]
+            },
+            "q38_help": {
+                tag: "💊 救援任務：完美的抵消",
+                text: "諧振的本質，就是電感(L)跟電容(C)兩個死對頭的能量「完全抵消」。既然要完全抵消，它們的抵抗力當然要？",
+                options: [
+                    { text: "A. 完全相等 (XL = XC)", next: "q38", isCorrect: true },
+                    { text: "B. 一大一小", next: "q38_help", log: "Q38救錯: 一大一小就沒辦法抵消了啊！" }
+                ]
+            },
+
+            // --- 第 39 關：串聯諧振特性 ---
+            "q39": {
+                tag: "第 39 關：諧振電路",
+                text: "承上題，當 RLC「串聯」電路發生諧振時，電路的「總阻抗 (Z)」與「總電流 (I)」會呈現什麼極端狀態？",
+                options: [
+                    { text: "A. 阻抗最小，電流最大", next: "q40", isCorrect: true },
+                    { text: "B. 阻抗最大，電流最小", next: "q39_help", log: "Q39錯: 這是並聯諧振的特性" },
+                    { text: "C. 阻抗無限大，電流為零", next: "q39_help", log: "Q39錯: 這是斷路" },
+                    { text: "D. 阻抗與電流皆為零", next: "q39_help", log: "Q39錯: 還有電阻R在，阻抗不會是零" }
+                ]
+            },
+            "q39_help": {
+                tag: "💊 救援任務：阻抗消失術",
+                text: "因為 XL = XC 互相減掉抵消了，總阻抗只剩下孤單的電阻 R，阻力降到了「最低點」。阻力變小，電流理所當然會？",
+                options: [
+                    { text: "A. 電流最大", next: "q39", isCorrect: true },
+                    { text: "B. 電流最小", next: "q39_help", log: "Q39救錯: 阻力小水流大，歐姆定律！" }
+                ]
+            },
+
+            // --- 第 40 關：品質因數 Q ---
+            "q40": {
+                tag: "第 40 關：諧振電路",
+                text: "諧振電路中，「品質因數 (Q值)」代表電路的頻率選擇性。當 Q 值「越大」時，頻寬 (BW) 會如何變化？",
+                options: [
+                    { text: "A. 頻寬越小 (選擇性越尖銳)", next: "q41", isCorrect: true },
+                    { text: "B. 頻寬越大 (選擇性越差)", next: "q40_help", log: "Q40錯: Q 與 BW 成反比" },
+                    { text: "C. 頻寬不變", next: "q40_help", log: "Q40錯: 會受影響" },
+                    { text: "D. 頻寬變成零", next: "q40_help", log: "Q40錯: 只有理想無損元件才會為零" }
+                ]
+            },
+            "q40_help": {
+                tag: "💊 救援任務：高畫質收音機",
+                text: "公式：Q = fr / BW。Q 值越高，代表收音機調頻越精準，只會讓一小段特定的頻率通過，不會聽到隔壁電台的雜音。所以通過的寬度(頻寬)會？",
+                options: [
+                    { text: "A. 頻寬越小 (越窄越精準)", next: "q40", isCorrect: true },
+                    { text: "B. 頻寬越大", next: "q40_help", log: "Q40救錯: 寬度太大就會聽到雜訊啦" }
+                ]
+            },
+
+            // --- 第 41 關：三相 Y 接 ---
+            "q41": {
+                tag: "第 41 關：三相電源",
+                text: "在平衡的「三相 Y 型接法」中，外部的「線電壓 (V_L)」與內部的「相電壓 (V_P)」大小關係為何？",
+                options: [
+                    { text: "A. V_L = √3 V_P", next: "q42", isCorrect: true },
+                    { text: "B. V_L = V_P", next: "q41_help", log: "Q41錯: 這是 Δ 接法的特性" },
+                    { text: "C. V_L = 3 V_P", next: "q41_help", log: "Q41錯: 三相交流倍率是根號3" },
+                    { text: "D. V_L = V_P / √3", next: "q41_help", log: "Q41錯: 外部線電壓比較大" }
+                ]
+            },
+            "q41_help": {
+                tag: "💊 救援任務：Y字跨步",
+                text: "Y 型接法就像兩腿劈開，外部的線跨越了兩條腿(兩個相)。120度相位差相加後，電壓會放大成經典的幾倍？",
+                options: [
+                    { text: "A. √3 倍", next: "q41", isCorrect: true },
+                    { text: "B. 3 倍", next: "q41_help", log: "Q41救錯: 是根號 3 才對喔！" }
+                ]
+            },
+
+            // --- 第 42 關：三相 Δ 接 ---
+            "q42": {
+                tag: "第 42 關：三相電源",
+                text: "在平衡的「三相 Δ 型 (三角) 接法」中，外部的「線電流 (I_L)」與內部的「相電流 (I_P)」大小關係為何？",
+                options: [
+                    { text: "A. I_L = √3 I_P", next: "q43", isCorrect: true },
+                    { text: "B. I_L = I_P", next: "q42_help", log: "Q42錯: 這是 Y 接法的特性" },
+                    { text: "C. I_L = 3 I_P", next: "q42_help", log: "Q42錯: 交流相加倍率是根號3" },
+                    { text: "D. V_L = √3 V_P", next: "q42_help", log: "Q42錯: 題目問的是電流" }
+                ]
+            },
+            "q42_help": {
+                tag: "💊 救援任務：Δ節點匯流",
+                text: "Δ 接法的每個角角都有兩條路匯合流出去。所以「電流」會變大，倍率一樣是交流電神聖的那個數字：",
+                options: [
+                    { text: "A. √3 倍", next: "q42", isCorrect: true },
+                    { text: "B. 相等不變", next: "q42_help", log: "Q42救錯: 兩條水管匯流一定會變大！" }
+                ]
+            },
+
+            // --- 第 43 關：單相用銅量 ---
+            "q43": {
+                tag: "第 43 關：單相用電",
+                text: "統測必考！傳輸相同功率下，單相三線式 (1Φ3W) 的總用銅量，是單相二線式 (1Φ2W) 的多少倍？",
+                options: [
+                    { text: "A. 3/8 倍 (37.5%)", next: "q44", isCorrect: true },
+                    { text: "B. 3/4 倍 (75%)", next: "q43_help", log: "Q43錯: 這是三相三線的比率" },
+                    { text: "C. 8/3 倍", next: "q43_help", log: "Q43錯: 1Φ3W 比較省銅，倍率應小於1" },
+                    { text: "D. 1/3 倍", next: "q43_help", log: "Q43錯: 數值不對" }
+                ]
+            },
+            "q43_help": {
+                tag: "💊 救援任務：超省錢配電",
+                text: "因為 1Φ3W 利用 220V 傳輸讓電流減半，所以電線可以買很細的！死背密碼：八分之三。",
+                options: [
+                    { text: "A. 3/8", next: "q43", isCorrect: true },
+                    { text: "B. 3/4", next: "q43_help", log: "Q43救錯: 那是別的電路的答案喔" }
+                ]
+            },
+
+            // --- 第 44 關：變壓器 V-V 容量 ---
+            "q44": {
+                tag: "第 44 關：變壓器接線",
+                text: "三台變壓器原本接成 Δ-Δ 供電，若燒毀一台改成 V-V 接線，其總供電容量會剩下原本 Δ-Δ 總容量的百分之多少？",
+                options: [
+                    { text: "A. 57.7% (即 1/√3)", next: "q45", isCorrect: true },
+                    { text: "B. 86.6% (即 √3/2)", next: "q44_help", log: "Q44錯: 這是利用率" },
+                    { text: "C. 66.7%", next: "q44_help", log: "Q44錯: 不能單純用 2/3 來算" },
+                    { text: "D. 33.3%", next: "q44_help", log: "Q44錯: 太低了" }
+                ]
+            },
+            "q44_help": {
+                tag: "💊 救援任務：容量密碼 577",
+                text: "這也是死背題！壞掉一台後，總容量會剩下「根號三分之一」。換算成百分比，開頭是 57。是多少？",
+                options: [
+                    { text: "A. 57.7%", next: "q44", isCorrect: true },
+                    { text: "B. 86.6%", next: "q44_help", log: "Q44救錯: 86.6 是變壓器『利用率』的答案喔" }
+                ]
+            },
+
+            // --- 第 45 關：雙瓦特計 PF=1 (最終魔王) ---
+            "q45": {
+                tag: "🏆 最終關：雙瓦特計法",
+                text: "45題大挑戰最後一關！使用「雙瓦特計法」量測三相功率時，如果發現兩顆電表的讀值完全一樣 (W1 = W2)，這代表此負載是純電阻，其功率因數 (PF) 等於多少？",
+                options: [
+                    { text: "A. 1.0", next: "end", isCorrect: true },
+                    { text: "B. 0.5", next: "q45_help", log: "Q45錯: 0.5 是一表為零的時候" },
+                    { text: "C. 0", next: "q45_help", log: "Q45錯: 0 是兩表數值相同但一正一負" },
+                    { text: "D. 0.866", next: "q45_help", log: "Q45錯: 數值不對" }
+                ]
+            },
+            "q45_help": {
+                tag: "💊 救援任務：完美的純電阻",
+                text: "如果 W1 = W2，相減 (虛功率) 會等於 0。沒有虛功率代表它是一個完美、100% 都在作功的純電阻！最高效率(PF)是多少？",
+                options: [
+                    { text: "A. 1.0", next: "q45", isCorrect: true },
+                    { text: "B. 0.5", next: "q45_help", log: "Q45救錯: 1.0 才是完美的 100% 啦！" }
+                ]
+            }
+        };
+
+        // ==========================================
+        // 系統變數與遊戲邏輯
+        // ==========================================
+        let studentName = "";
+        let currentStep = "q1"; 
+        let hp = 30; 
+        let currentStreak = 0; 
+        let diagnosticLogs = [];
+        let sessionCards = []; 
+        let failedQuestions = []; 
+        let startTime = 0;           
+        let totalTime = 0;           
+        let rescueTriggered = 0;     
+        let rescueFails = 0;
+        let isTransitioning = false; 
+        
+        // 🚨 修正預設卡包對應正確的 Key
+        let currentPackId = "phase1"; 
+	const scriptURL = 'https://script.google.com/macros/s/AKfycbwQnum1bAGvOb-dv5hL08S0pzMB93_gN0ZmoqCQtUjKFYOT-vs8Df0iTT6OMpx_sb6pjg/exec';
+
+        // 初始化卡包選單 (立即執行，不依賴 window.onload 以防某些平台吃掉事件)
+        function initPackSelector() {
+            const selector = document.getElementById('pack-selector');
+            selector.innerHTML = '';
+            Object.keys(cardPacks).forEach(key => {
+                // 如果卡包裡面沒有卡片，就不顯示該選項
+                if (cardPacks[key].cards.length > 0) {
+                    const div = document.createElement('div');
+                    div.className = `pack-option ${key === currentPackId ? 'active' : ''}`;
+                    div.innerText = cardPacks[key].name;
+                    div.onclick = () => selectPack(key, div);
+                    selector.appendChild(div);
+                }
+            });
+        }
+        initPackSelector();
+
+        function selectPack(packId, el) {
+            currentPackId = packId;
+            document.querySelectorAll('.pack-option').forEach(opt => opt.classList.remove('active'));
+            el.classList.add('active');
+        }
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        function saveToCollection(cardObj) {
+            let storageKey = "gachaCollection_" + studentName;
+            let pastCollection = JSON.parse(localStorage.getItem(storageKey)) || [];
+            let existingCard = pastCollection.find(c => c.id === cardObj.id);
+            if(existingCard) { existingCard.count += 1; } 
+            else { pastCollection.push({ ...cardObj, count: 1 }); }
+            localStorage.setItem(storageKey, JSON.stringify(pastCollection));
+        }
+
+        function openCollection() {
+            let inputName = document.getElementById('student-name').value.trim();
+            if(!inputName) { alert("請先輸入姓名！"); return; }
+            
+            let storageKey = "gachaCollection_" + inputName;
+            let pastCollection = JSON.parse(localStorage.getItem(storageKey)) || [];
+            
+            let totalUnique = 0;
+            let totalCards = 0;
+            
+            let contentArea = document.getElementById('collection-content');
+            contentArea.innerHTML = "";
+            
+            Object.keys(cardPacks).forEach(packKey => {
+                const pack = cardPacks[packKey];
+                let packNormalPool = pack.cards.filter(c => c.chance > 0);
+                if (packNormalPool.length === 0) return;
+
+                totalCards += packNormalPool.length;
+                
+                let packUnique = packNormalPool.filter(mc => pastCollection.some(pc => pc.id === mc.id)).length;
+                totalUnique += packUnique;
+                
+                contentArea.innerHTML += `<div class="pack-section-title">${pack.name} (${packUnique}/${packNormalPool.length})</div>`;
+                
+                let gridHtml = `<div class="card-grid">`;
+                
+                pack.cards.forEach(masterCard => {
+                    let ownedCard = pastCollection.find(c => c.id === masterCard.id);
+                    if (masterCard.chance === 0 && !ownedCard) return; 
+
+                    if (ownedCard) {
+                        let synthHtml = "";
+                        if (masterCard.synthTarget && ownedCard.count >= 5) {
+                            let btnClass = masterCard.rarity === "SR" ? "btn-synth btn-synth-sr" : "btn-synth";
+                            let btnIcon = masterCard.rarity === "SR" ? "🔥" : "✨";
+                            synthHtml = `<button class="${btnClass}" onclick="synthesizeCard('${masterCard.id}', '${masterCard.synthTarget}')">${btnIcon} 5合1 覺醒</button>`;
+                        }
+
+                        gridHtml += `
+                            <div class="mini-card">
+                                <div class="count">x${ownedCard.count}</div>
+                                <img src="${masterCard.image}" alt="${masterCard.name}">
+                                <div class="name">${masterCard.name}</div>
+                                ${synthHtml}
+                            </div>`;
+                    } else {
+                        gridHtml += `
+                            <div class="mini-card unowned">
+                                <img src="${masterCard.image}" alt="???">
+                                <div class="name">【???】未知卡片</div>
+                            </div>`;
+                    }
+                });
+                gridHtml += `</div>`;
+                contentArea.innerHTML += gridHtml;
+            });
+
+            document.getElementById('collection-title').innerText = `🏆 ${inputName} 的圖鑑 (${totalUnique} / ${totalCards})`;
+            document.getElementById('collection-modal').style.display = "flex";
+        }
+
+        function synthesizeCard(materialId, targetSpId) {
+            let inputName = document.getElementById('student-name').value.trim();
+            let storageKey = "gachaCollection_" + inputName;
+            let pastCollection = JSON.parse(localStorage.getItem(storageKey)) || [];
+
+            let materialIndex = pastCollection.findIndex(c => c.id === materialId);
+            if (materialIndex > -1 && pastCollection[materialIndex].count >= 5) {
+                
+                let spMaster = null;
+                for (let packKey in cardPacks) {
+                    let found = cardPacks[packKey].cards.find(c => c.id === targetSpId);
+                    if (found) { spMaster = found; break; }
+                }
+                if (!spMaster) return;
+
+                pastCollection[materialIndex].count -= 5;
+                
+                let spCardIndex = pastCollection.findIndex(c => c.id === targetSpId);
+                if (spCardIndex > -1) { pastCollection[spCardIndex].count += 1; } 
+                else { pastCollection.push({ ...spMaster, count: 1 }); }
+                
+                localStorage.setItem(storageKey, JSON.stringify(pastCollection));
+                closeCollection();
+                showSynthesisAnimation(spMaster);
+            }
+        }
+
+        function showSynthesisAnimation(spCard) {
+            playSound('synth'); 
+            const overlay = document.getElementById('gacha-overlay');
+            const cardObj = document.getElementById('revealed-card');
+            
+            document.getElementById('pre-draw-btn').style.display = 'none';
+            document.getElementById('gacha-title').innerText = "✨ 碎片融合！傳說覺醒！ ✨";
+            
+            cardObj.className = "gacha-card card-SP"; 
+            document.getElementById('card-image').src = spCard.image; 
+            document.getElementById('card-image').style.display = 'block'; 
+            document.getElementById('card-name').innerText = spCard.name;
+            cardObj.style.display = 'flex';
+            
+            const postBtn = document.getElementById('post-draw-btn');
+            postBtn.innerText = "收下隱藏神卡";
+            postBtn.style.display = 'block';
+            postBtn.onclick = function() {
+                cardObj.style.transform = "scale(0)"; 
+                setTimeout(() => {
+                    overlay.style.display = "none";
+                    postBtn.innerText = "收下神卡並繼續";
+                    postBtn.onclick = closeGacha; 
+                    openCollection(); 
+                }, 300);
+            };
+            overlay.style.display = "flex";
+            setTimeout(() => { cardObj.style.transform = "scale(1)"; }, 100);
+        }
+
+        function closeCollection() { document.getElementById('collection-modal').style.display = "none"; }
+
+        function startGame() {
+            studentName = document.getElementById('student-name').value.trim();
+            if (!studentName) { alert("請先輸入姓名喔！"); return; }
+            startTime = Date.now();
+            initAudio(); 
+            document.getElementById('student-setup').style.display = 'none';
+            document.getElementById('game-area').style.display = 'block';
+            updateStatus();
+            renderQuestion();
+        }
+
+        function renderQuestion() {
+            isTransitioning = false; 
+            if (currentStep === "end") { finishGame(); return; }
+            const q = quizData[currentStep];
+            document.getElementById('q-tag').innerText = q.tag;
+            document.getElementById('q-text').innerHTML = q.text;
+
+            if (q.tag.includes("救援") || q.tag.includes("提示")) {
+                document.getElementById('q-tag').style.background = "#8e44ad"; 
+                document.body.classList.add('rescue-mode'); 
+            } else {
+                document.body.classList.remove('rescue-mode'); 
+                if (q.tag.includes("流行") || q.tag.includes("放鬆") || q.tag.includes("時間") || q.tag.includes("娛樂")) {
+                    document.getElementById('q-tag').style.background = "#27ae60"; 
+                } else {
+                    document.getElementById('q-tag').style.background = "#e74c3c"; 
+                }
+            }
+
+            const optionsArea = document.getElementById('options-area');
+            optionsArea.innerHTML = ""; 
+
+            let shuffledOptions = [...q.options];
+            shuffleArray(shuffledOptions);
+            const labels = ["A", "B", "C", "D"];
+
+            shuffledOptions.forEach((opt, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'btn';
+                let cleanText = opt.text.replace(/^[A-D]\.\s*/, "");
+                btn.innerText = `${labels[index]}. ${cleanText}`;
+                btn.onclick = () => handleAnswer(opt);
+                optionsArea.appendChild(btn);
+            });
+        }
+
+        function handleAnswer(selectedOption) {
+            if (isTransitioning) return; 
+            isTransitioning = true; 
+            let isRescueQuestion = currentStep.includes("_help"); 
+
+            if (!selectedOption.isCorrect) {
+                playSound('wrong'); 
+                hp--; if(hp < 0) hp = 0; 
+                currentStreak = 0; 
+                updateStatus();
+                if (selectedOption.log) diagnosticLogs.push(selectedOption.log);
+                
+                if (!failedQuestions.includes(currentStep)) {
+                    failedQuestions.push(currentStep);
+                }
+
+                if (!isRescueQuestion) { rescueTriggered++; } 
+                else { rescueFails++; }
+
+                currentStep = selectedOption.next;
+                renderQuestion();
+            } 
+            else {
+                playSound('correct'); 
+                showCorrectSplash();  
+                
+                if (!isRescueQuestion && !failedQuestions.includes(currentStep)) {
+                    currentStreak++;
+                }
+
+                setTimeout(() => {
+                    let nextStep = selectedOption.next;
+                    
+                    if (currentStreak >= 2) {
+                        currentStreak = 0; 
+                        currentStep = nextStep;
+                        document.getElementById('gacha-title').innerText = "🔥 二連擊達成！獲得抽卡機會！ ✨";
+                        prepareGacha(); 
+                    } else {
+                        currentStep = nextStep;
+                        renderQuestion();
+                    }
+                    updateStatus();
+                }, 800);
+            }
+        }
+
+        function showCorrectSplash() {
+            const splash = document.getElementById('correct-splash');
+            splash.classList.add('show');
+            setTimeout(() => { splash.classList.remove('show'); }, 600);
+        }
+
+        function updateStatus() {
+            let hpText = hp > 10 ? `❤️❤️ x ${hp}` : "❤️".repeat(hp);
+            document.getElementById('hearts').innerText = hpText;
+            document.getElementById('streak-display').innerText = `🔥 連擊: ${currentStreak} / 2`;
+        }
+
+        function prepareGacha() {
+            const overlay = document.getElementById('gacha-overlay');
+            document.getElementById('pre-draw-btn').style.display = 'block';
+            document.getElementById('revealed-card').style.display = 'none';
+            document.getElementById('post-draw-btn').style.display = 'none';
+            overlay.style.display = "flex";
+        }
+
+        function executeDraw() {
+            playSound('draw'); 
+            document.getElementById('pre-draw-btn').style.display = 'none';
+            document.getElementById('gacha-title').innerText = "🎉 戰利品揭曉 🎉";
+            drawCard(); 
+        }
+
+        function drawCard() {
+            const cardObj = document.getElementById('revealed-card');
+            
+            // 安全性防呆：確保所選卡包存在
+            if (!cardPacks[currentPackId]) currentPackId = "phase1";
+            
+            let currentPool = cardPacks[currentPackId].cards;
+            let drawablePool = currentPool.filter(c => c.chance > 0);
+            
+            let randomNum = Math.random() * 100;
+            let currentLimit = 0;
+            let resultCard = drawablePool[drawablePool.length - 1]; 
+            for (let i = 0; i < drawablePool.length; i++) {
+                currentLimit += drawablePool[i].chance;
+                if (randomNum <= currentLimit) { resultCard = drawablePool[i]; break; }
+            }
+
+            cardObj.className = "gacha-card"; 
+            cardObj.classList.add(`card-${resultCard.rarity}`);
+            document.getElementById('card-image').src = resultCard.image; 
+            document.getElementById('card-image').style.display = 'block'; 
+            document.getElementById('card-name').innerText = resultCard.name;
+            
+            cardObj.style.display = 'flex';
+            document.getElementById('post-draw-btn').style.display = 'block';
+            setTimeout(() => { cardObj.style.transform = "scale(1)"; }, 100);
+
+            sessionCards.push(resultCard.name);
+            saveToCollection(resultCard); 
+            document.getElementById('inventory-display').innerText = `🎒 本局已抽: ${sessionCards.length} 張`;
+        }
+
+        function closeGacha() {
+            const overlay = document.getElementById('gacha-overlay');
+            const cardObj = document.getElementById('revealed-card');
+            cardObj.style.transform = "scale(0)"; 
+            setTimeout(() => {
+                overlay.style.display = "none";
+                renderQuestion(); 
+            }, 300);
+        }
+
+        function finishGame() {
+            document.getElementById('game-area').style.display = 'none';
+            document.getElementById('result-area').style.display = 'block';
+
+            totalTime = Math.round((Date.now() - startTime) / 1000);
+
+            let reportArea = document.getElementById('log-report');
+            let finalScoreText = `血量剩餘：${hp}\n🕒 耗時：${totalTime} 秒\n🏀 本局共獲得 ${sessionCards.length} 張卡片\n\n`;
+            let logText = diagnosticLogs.length === 0 ? "🌟 完美通關，基礎極度扎實！" : "⚠️ 盲點診斷 (請老師留意)：\n" + diagnosticLogs.join("\n");
+            
+            reportArea.innerText = finalScoreText + logText;
+
+            let itemsText = sessionCards.length > 0 ? sessionCards.join(",") : "無";
+            sendDataToSheet(
+                studentName, hp, totalTime, rescueTriggered, rescueFails, 
+                diagnosticLogs.length, diagnosticLogs.join(" | "), itemsText
+            );
+        }
+
+        function sendDataToSheet(name, hp, time, rescueT, rescueF, errorCount, errorDetails, cards) {
+            let formData = new URLSearchParams();
+            formData.append('name', name);
+            formData.append('hp', hp);
+            formData.append('time', time);
+            formData.append('rescueTriggered', rescueT);
+            formData.append('rescueFails', rescueF); 
+            formData.append('errorCount', errorCount);
+            formData.append('errorDetails', errorDetails);
+            formData.append('cards', cards);
+            
+            let storageKey = "gachaCollection_" + name;
+            let fullCollection = localStorage.getItem(storageKey) || "[]";
+            formData.append('fullCollection', fullCollection);
+            fetch(scriptURL, { method: 'POST', body: formData });
+        }
+
+        async function syncCloudData() {
+            let inputName = document.getElementById('student-name').value.trim();
+            if(!inputName) { alert("⚠️ 請先輸入您的姓名，才能尋找雲端存檔喔！"); return; }
+
+            let syncBtn = document.getElementById('btn-sync');
+            let originalText = syncBtn.innerText;
+            syncBtn.innerText = "⏳ 雲端同步中，請稍候...";
+            syncBtn.disabled = true;
+
+            try {
+                let response = await fetch(scriptURL + "?name=" + encodeURIComponent(inputName), { method: "GET" });
+                let result = await response.json();
+
+                if(result.status === "success") {
+                    localStorage.setItem("gachaCollection_" + inputName, result.data);
+                    alert("✅ 雲端同步成功！已為您載入最新的圖鑑進度！\n您可以點擊「查看我的圖鑑」確認。");
+                } else {
+                    alert("🆕 找不到您的雲端存檔。\n如果您是第一次玩，這是正常的，系統將為您建立全新圖鑑！");
+                }
+            } catch(e) {
+                alert("❌ 同步失敗，請檢查網路連線或稍後再試。");
+                console.error(e);
+            } finally {
+                syncBtn.innerText = originalText;
+                syncBtn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>
